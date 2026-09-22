@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#005baa">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<title>Dashboard de Coordenadas V3</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+body{margin:0;background:#eef3f8;padding:30px}
+.container{max-width:920px;margin:auto;background:#fff;border-radius:15px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,.15)}
+h1{margin:0 0 8px;text-align:center;color:#005baa}
+.sub{text-align:center;color:#5b6773;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-weight:bold;color:#263746;margin-bottom:6px}
+input{width:100%;padding:14px;border:2px solid #d7dfe7;border-radius:8px;font-size:17px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+button,a.btn{border:0;border-radius:8px;padding:13px 18px;font-weight:bold;cursor:pointer;color:#fff;text-decoration:none;font-size:15px}
+#localizar{background:#00994d} #copiar{background:#005baa} #limpar{background:#d62828} #maps{background:#444}
+.resultado{border:2px solid #d7dfe7;border-radius:10px;padding:17px;line-height:1.9;font-size:16px;overflow-wrap:anywhere}
+.resultado strong{color:#005baa}
+.endereco{margin-top:15px;border:2px solid #b9d7c6;background:#f5fbf7;border-radius:10px;padding:17px;line-height:1.8}
+.endereco h2{font-size:18px;color:#08783f;margin:0 0 8px}
+.aviso{margin-top:12px;font-weight:bold}.ok{color:#00994d}.erro{color:#c62828}.carregando{color:#996c00}
+.obs{margin-top:15px;color:#667;font-size:13px}
+.busca-endereco{margin-top:22px;border-top:2px solid #e4e9ee;padding-top:20px}
+.busca-endereco h2{margin:0 0 6px;color:#005baa;font-size:20px}
+.busca-endereco .desc{color:#667;margin-bottom:14px}
+.grid-endereco{display:grid;grid-template-columns:2fr .7fr 1.2fr 1.2fr;gap:10px}
+#buscarEndereco{background:#7a4db3}
+@media(max-width:760px){.grid-endereco{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.grid-endereco{grid-template-columns:1fr}body{padding:12px}.container{padding:18px}.grid{grid-template-columns:1fr}.actions>*{flex:1;text-align:center}}
+
+/* Telegram Mini App */
+:root{
+  --tg-bg: var(--tg-theme-bg-color, #eef3f8);
+  --tg-text: var(--tg-theme-text-color, #263746);
+  --tg-hint: var(--tg-theme-hint-color, #667);
+  --tg-card: var(--tg-theme-secondary-bg-color, #fff);
+  --tg-button: var(--tg-theme-button-color, #005baa);
+  --tg-button-text: var(--tg-theme-button-text-color, #fff);
+}
+body{
+  background:var(--tg-bg);
+  color:var(--tg-text);
+  padding:calc(12px + var(--tg-safe-area-inset-top, 0px))
+          calc(12px + var(--tg-safe-area-inset-right, 0px))
+          calc(20px + var(--tg-safe-area-inset-bottom, 0px))
+          calc(12px + var(--tg-safe-area-inset-left, 0px));
+}
+.container{background:var(--tg-card);color:var(--tg-text)}
+.telegram-bar{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:-8px -2px 14px;
+  padding:9px 11px;
+  border-radius:10px;
+  background:rgba(0,0,0,.04);
+  font-size:12px;
+}
+.telegram-bar.visible{display:flex}
+.telegram-user{font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.telegram-badge{font-size:11px;opacity:.75}
+@media(max-width:650px){
+  .container{border-radius:12px;padding:16px;box-shadow:none}
+  h1{font-size:24px}
+  .sub{font-size:13px}
+  input{font-size:16px}
+  button,a.btn{min-height:46px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="telegram-bar" id="telegramBar">
+  <span class="telegram-user" id="telegramUser">Telegram</span>
+  <span class="telegram-badge">Mini App</span>
+</div>
+<h1>📍 DASHBOARD DE COORDENADAS</h1>
+<div class="sub">Cole Latitude e Longitude como aparecem no sistema. O “-” pode estar no início ou no final.</div>
+
+<div class="grid">
+ <div><label for="lat">LATITUDE DE ENVIO</label><input id="lat" inputmode="decimal" placeholder="Ex.: 1.353799360000-"></div>
+ <div><label for="lon">LONGITUDE DE ENVIO</label><input id="lon" inputmode="decimal" placeholder="Ex.: 48.244599970000-"></div>
+</div>
+
+<div class="actions">
+ <button id="localizar">📍 Localizar + Buscar Rua</button>
+ <button id="copiar">📋 Copiar tudo</button>
+ <a id="maps" class="btn" target="_blank" rel="noopener" style="display:none">🗺️ Abrir no Google Maps</a>
+ <button id="limpar">🗑️ Limpar</button>
+</div>
+
+<div class="resultado" id="resultado">
+ <strong>LATITUDE:</strong> —<br><strong>LONGITUDE:</strong> —<br><strong>GOOGLE MAPS:</strong> —
+</div>
+
+<div class="endereco" id="endereco">
+ <h2>🏠 ENDEREÇO</h2>
+ <strong>RUA:</strong> —<br>
+ <strong>BAIRRO:</strong> —<br>
+ <strong>CIDADE:</strong> —<br>
+ <strong>ESTADO:</strong> —<br>
+ <strong>CEP:</strong> —
+</div>
+
+<div class="aviso" id="status"></div>
+
+<div class="busca-endereco">
+ <h2>🔎 BUSCAR POR ENDEREÇO</h2>
+ <div class="desc">Digite o endereço para descobrir as coordenadas sem alterar a busca por coordenadas acima.</div>
+ <div class="grid-endereco">
+   <div><label for="ruaBusca">RUA / AVENIDA / TRAVESSA</label><input id="ruaBusca" placeholder="Ex.: Av. Almirante Barroso"></div>
+   <div><label for="numeroBusca">NÚMERO</label><input id="numeroBusca" placeholder="Ex.: 1000"></div>
+   <div><label for="bairroBusca">BAIRRO</label><input id="bairroBusca" placeholder="Opcional"></div>
+   <div><label for="cidadeBusca">CIDADE / UF</label><input id="cidadeBusca" value="Belém, PA" placeholder="Ex.: Belém, PA"></div>
+ </div>
+ <div class="actions">
+   <button id="buscarEndereco">🔎 Buscar endereço</button>
+   <a id="mapsEndereco" class="btn" target="_blank" rel="noopener" style="display:none;background:#444">🗺️ Abrir resultado no Maps</a>
+ </div>
+ <div class="resultado" id="resultadoEndereco">
+   <strong>ENDEREÇO ENCONTRADO:</strong> —<br>
+   <strong>LATITUDE:</strong> —<br>
+   <strong>LONGITUDE:</strong> —
+ </div>
+ <div class="aviso" id="statusEndereco"></div>
+</div>
+
+<div class="obs">O endereço é obtido por geocodificação reversa. Em áreas rurais ou locais sem cadastro de vias, o serviço pode retornar apenas bairro, município ou região.</div>
+</div>
+
+<script>
+/* ===== Telegram Mini App integration ===== */
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+(function initTelegram(){
+  if(!tg) return;
+
+  tg.ready();
+  try { tg.expand(); } catch(e) {}
+
+  const bar = document.getElementById('telegramBar');
+  const userEl = document.getElementById('telegramUser');
+  const user = tg.initDataUnsafe && tg.initDataUnsafe.user;
+
+  if(bar){
+    bar.classList.add('visible');
+    if(userEl){
+      const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ');
+      userEl.textContent = name ? `👤 ${name}` : '📱 Telegram';
+    }
+  }
+
+  // Apply Telegram theme colors automatically.
+  document.documentElement.style.setProperty(
+    '--tg-button', tg.themeParams?.button_color || '#005baa'
+  );
+
+  // Telegram's native Back Button closes the Mini App when appropriate.
+  if(tg.BackButton){
+    tg.BackButton.onClick(() => tg.close());
+  }
+})();
+
+function telegramShareText(text){
+  if(!tg || !tg.initData) return false;
+  try{
+    if(tg.showPopup){
+      tg.showPopup({
+        title:'Coordenadas',
+        message:'Resultado copiado. Você também pode enviar pelo menu de compartilhamento do Telegram.',
+        buttons:[{id:'ok',type:'ok'}]
+      });
+    }
+  }catch(e){}
+  return false;
+}
+
+const $=id=>document.getElementById(id);
+let dados={};
+
+function parseCoord(valor){
+ let s=String(valor??'').trim().replace(/\s+/g,'').replace(/,/g,'.');
+ if(!s) return NaN;
+ let neg=false;
+ if(s.startsWith('-')){neg=true;s=s.slice(1)}
+ if(s.endsWith('-')){neg=true;s=s.slice(0,-1)}
+ s=s.replace(/\+/g,'');
+ if(!/^\d+(\.\d+)?$/.test(s)) return NaN;
+ const n=Number(s);
+ return neg?-Math.abs(n):n;
+}
+function pick(a,keys){
+ for(const k of keys) if(a && a[k]) return a[k];
+ return '';
+}
+function esc(s){
+ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function localizar(){
+ const lat=parseCoord($('lat').value), lon=parseCoord($('lon').value), st=$('status');
+ if(!Number.isFinite(lat)||!Number.isFinite(lon)){
+   st.className='aviso erro'; st.textContent='Preencha Latitude e Longitude com valores válidos.'; return;
+ }
+ if(lat<-90||lat>90||lon<-180||lon>180){
+   st.className='aviso erro'; st.textContent='Coordenadas fora da faixa válida.'; return;
+ }
+
+ const latS=lat.toFixed(12).replace(/0+$/,'').replace(/\.$/,'');
+ const lonS=lon.toFixed(12).replace(/0+$/,'').replace(/\.$/,'');
+ const link=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(latS+','+lonS)}`;
+ dados={lat:latS,lon:lonS,link,rua:'',bairro:'',cidade:'',estado:'',cep:''};
+
+ $('resultado').innerHTML=`<strong>LATITUDE:</strong> ${esc(latS)}<br><strong>LONGITUDE:</strong> ${esc(lonS)}<br><strong>GOOGLE MAPS:</strong> ${esc(link)}`;
+ $('maps').href=link; $('maps').style.display='inline-block';
+ $('endereco').innerHTML='<h2>🏠 ENDEREÇO</h2>Buscando nome da rua e endereço...';
+ st.className='aviso carregando'; st.textContent='Consultando endereço...';
+
+ try{
+   const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latS)}&lon=${encodeURIComponent(lonS)}&zoom=18&addressdetails=1&accept-language=pt-BR`;
+   const r=await fetch(url,{headers:{'Accept':'application/json'}});
+   if(!r.ok) throw new Error('Falha na consulta');
+   const j=await r.json();
+   const a=j.address||{};
+   dados.rua=pick(a,['road','pedestrian','residential','footway','path','cycleway']);
+   dados.bairro=pick(a,['suburb','neighbourhood','quarter','city_district']);
+   dados.cidade=pick(a,['city','town','municipality','village']);
+   dados.estado=pick(a,['state']);
+   dados.cep=pick(a,['postcode']);
+
+   $('endereco').innerHTML=`<h2>🏠 ENDEREÇO</h2>
+    <strong>RUA:</strong> ${esc(dados.rua||'Não identificada')}<br>
+    <strong>BAIRRO:</strong> ${esc(dados.bairro||'Não identificado')}<br>
+    <strong>CIDADE:</strong> ${esc(dados.cidade||'Não identificada')}<br>
+    <strong>ESTADO:</strong> ${esc(dados.estado||'Não identificado')}<br>
+    <strong>CEP:</strong> ${esc(dados.cep||'Não identificado')}`;
+   st.className='aviso ok'; st.textContent='Localização e endereço encontrados!';
+ }catch(e){
+   $('endereco').innerHTML='<h2>🏠 ENDEREÇO</h2><strong>RUA:</strong> Não foi possível consultar agora.<br><strong>BAIRRO:</strong> —<br><strong>CIDADE:</strong> —<br><strong>ESTADO:</strong> —<br><strong>CEP:</strong> —';
+   st.className='aviso erro'; st.textContent='O ponto do Google Maps está pronto, mas a consulta do endereço não respondeu. Tente novamente.';
+ }
+}
+
+$('localizar').addEventListener('click',localizar);
+$('copiar').addEventListener('click',async()=>{
+ if(!dados.link){$('status').className='aviso erro';$('status').textContent='Localize uma coordenada primeiro.';return}
+ const t=`RUA: ${dados.rua||'-'}\nBAIRRO: ${dados.bairro||'-'}\nCIDADE: ${dados.cidade||'-'}\nESTADO: ${dados.estado||'-'}\nCEP: ${dados.cep||'-'}\nCOORDENADAS: ${dados.lat}, ${dados.lon}\n${dados.link}`;
+ try{await navigator.clipboard.writeText(t);if(tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');$('status').className='aviso ok';$('status').textContent='Endereço e localização copiados!'}
+ catch{window.prompt('Copie:',t)}
+});
+$('limpar').addEventListener('click',()=>{
+ $('lat').value='';$('lon').value='';dados={};$('maps').style.display='none';
+ $('resultado').innerHTML='<strong>LATITUDE:</strong> —<br><strong>LONGITUDE:</strong> —<br><strong>GOOGLE MAPS:</strong> —';
+ $('endereco').innerHTML='<h2>🏠 ENDEREÇO</h2><strong>RUA:</strong> —<br><strong>BAIRRO:</strong> —<br><strong>CIDADE:</strong> —<br><strong>ESTADO:</strong> —<br><strong>CEP:</strong> —';
+ $('status').textContent='';$('lat').focus();
+});
+['lat','lon'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')localizar()}));
+
+async function buscarPorEndereco(){
+ const rua=$('ruaBusca').value.trim();
+ const numero=$('numeroBusca').value.trim();
+ const bairro=$('bairroBusca').value.trim();
+ const cidade=$('cidadeBusca').value.trim();
+ const st=$('statusEndereco');
+
+ if(!rua){
+   st.className='aviso erro';
+   st.textContent='Digite pelo menos o nome da rua.';
+   return;
+ }
+
+ const consulta=[rua,numero,bairro,cidade,'Brasil'].filter(Boolean).join(', ');
+ st.className='aviso carregando';
+ st.textContent='Buscando endereço...';
+ $('mapsEndereco').style.display='none';
+
+ try{
+   const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&countrycodes=br&accept-language=pt-BR&q=${encodeURIComponent(consulta)}`;
+   const r=await fetch(url,{headers:{'Accept':'application/json'}});
+   if(!r.ok) throw new Error('Falha na consulta');
+   const lista=await r.json();
+
+   if(!Array.isArray(lista)||!lista.length){
+     $('resultadoEndereco').innerHTML='<strong>ENDEREÇO ENCONTRADO:</strong> Não encontrado<br><strong>LATITUDE:</strong> —<br><strong>LONGITUDE:</strong> —';
+     st.className='aviso erro';
+     st.textContent='Não encontrei esse endereço. Tente retirar o bairro, conferir o número ou informar cidade/UF.';
+     return;
+   }
+
+   const j=lista[0];
+   const lat=Number(j.lat), lon=Number(j.lon);
+   if(!Number.isFinite(lat)||!Number.isFinite(lon)) throw new Error('Coordenada inválida');
+
+   const latS=lat.toFixed(12).replace(/0+$/,'').replace(/\.$/,'');
+   const lonS=lon.toFixed(12).replace(/0+$/,'').replace(/\.$/,'');
+   const link=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(latS+','+lonS)}`;
+
+   $('resultadoEndereco').innerHTML=
+     `<strong>ENDEREÇO ENCONTRADO:</strong> ${esc(j.display_name||consulta)}<br>`+
+     `<strong>LATITUDE:</strong> ${esc(latS)}<br>`+
+     `<strong>LONGITUDE:</strong> ${esc(lonS)}`;
+
+   $('mapsEndereco').href=link;
+   $('mapsEndereco').style.display='inline-block';
+   st.className='aviso ok';
+   st.textContent='Endereço encontrado! Confira o ponto no Google Maps.';
+ }catch(e){
+   st.className='aviso erro';
+   st.textContent='A busca de endereço não respondeu agora. Tente novamente.';
+ }
+}
+
+$('buscarEndereco').addEventListener('click',buscarPorEndereco);
+
+// Optional bridge for a future bot/backend.
+// This does not expose or trust initData on the client; server-side validation is required.
+function enviarParaTelegram(payload){
+  if(!tg || !tg.sendData) return false;
+  try{
+    tg.sendData(JSON.stringify(payload));
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+['ruaBusca','numeroBusca','bairroBusca','cidadeBusca'].forEach(id=>{
+ $(id).addEventListener('keydown',e=>{if(e.key==='Enter')buscarPorEndereco()});
+});
+
+</script>
+</body>
+</html>
