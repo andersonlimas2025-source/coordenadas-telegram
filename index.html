@@ -29,7 +29,7 @@ button,a.btn{border:0;border-radius:8px;padding:13px 18px;font-weight:bold;curso
 .resultado{border:2px solid #d7dfe7;border-radius:10px;padding:17px;line-height:1.9;font-size:16px;overflow-wrap:anywhere}
 .resultado strong{color:#005baa}
 .endereco{margin-top:15px;border:2px solid #b9d7c6;background:#f5fbf7;color:#263746;border-radius:10px;padding:17px;line-height:1.8}
-.endereco strong{color:#263746}
+.endereco strong{color:#263746 !important}.endereco{background:#ffffff !important;color:#263746 !important}.endereco h2{color:#08783f !important}
 .endereco h2{font-size:18px;color:#08783f;margin:0 0 8px}
 .aviso{margin-top:12px;font-weight:bold}.ok{color:#00994d}.erro{color:#c62828}.carregando{color:#996c00}
 .obs{margin-top:15px;color:#667;font-size:13px}
@@ -297,12 +297,12 @@ async function localizar(){
    dados.estado=pick(a,['state']);
    dados.cep=pick(a,['postcode']);
 
-   $('endereco').innerHTML=`<h2>🏠 ENDEREÇO</h2>
-    <strong>RUA:</strong> ${esc(dados.rua||'Não identificada')}<br>
-    <strong>BAIRRO:</strong> ${esc(dados.bairro||'Não identificado')}<br>
-    <strong>CIDADE:</strong> ${esc(dados.cidade||'Não identificada')}<br>
-    <strong>ESTADO:</strong> ${esc(dados.estado||'Não identificado')}<br>
-    <strong>CEP:</strong> ${esc(dados.cep||'Não identificado')}`;
+   $('endereco').innerHTML=`<h2 style="color:#08783f !important">🏠 ENDEREÇO</h2>
+    <span style="color:#263746 !important"><strong style="color:#263746 !important">RUA:</strong> ${esc(dados.rua||'Não identificada')}<br>
+    <strong style="color:#263746 !important">BAIRRO:</strong> ${esc(dados.bairro||'Não identificado')}<br>
+    <strong style="color:#263746 !important">CIDADE:</strong> ${esc(dados.cidade||'Não identificada')}<br>
+    <strong style="color:#263746 !important">ESTADO:</strong> ${esc(dados.estado||'Não identificado')}<br>
+    <strong style="color:#263746 !important">CEP:</strong> ${esc(dados.cep||'Não identificado')}</span>`;
    st.className='aviso ok'; st.textContent='Localização e endereço encontrados!';
  }catch(e){
    $('endereco').innerHTML='<h2>🏠 ENDEREÇO</h2><strong>RUA:</strong> Não foi possível consultar agora.<br><strong>BAIRRO:</strong> —<br><strong>CIDADE:</strong> —<br><strong>ESTADO:</strong> —<br><strong>CEP:</strong> —';
