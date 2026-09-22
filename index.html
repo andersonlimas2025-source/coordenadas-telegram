@@ -15,6 +15,14 @@ h1{margin:0 0 8px;text-align:center;color:#005baa}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 label{display:block;font-weight:bold;color:#263746;margin-bottom:6px}
 input{width:100%;padding:14px;border:2px solid #d7dfe7;border-radius:8px;font-size:17px}
+/* Entrada de coordenadas otimizada para celular/tablet */
+.coord-line{display:flex;gap:8px;align-items:stretch}
+.coord-line input{flex:1;min-width:0}
+.sign-btn{width:54px;padding:0;border:0;border-radius:8px;background:#005baa;color:#fff;font-size:26px;font-weight:700;cursor:pointer}
+.sign-btn.active{background:#d62828}
+@media(max-width:600px){
+ .sign-btn{width:58px;font-size:28px}
+}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
 button,a.btn{border:0;border-radius:8px;padding:13px 18px;font-weight:bold;cursor:pointer;color:#fff;text-decoration:none;font-size:15px}
 #localizar{background:#00994d} #copiar{background:#005baa} #limpar{background:#d62828} #maps{background:#444}
@@ -83,8 +91,20 @@ body{
 <div class="sub">Cole Latitude e Longitude como aparecem no sistema. O “-” pode estar no início ou no final.</div>
 
 <div class="grid">
- <div><label for="lat">LATITUDE DE ENVIO</label><input id="lat" inputmode="decimal" placeholder="Ex.: 1.353799360000-"></div>
- <div><label for="lon">LONGITUDE DE ENVIO</label><input id="lon" inputmode="decimal" placeholder="Ex.: 48.244599970000-"></div>
+ <div>
+   <label for="lat">LATITUDE DE ENVIO</label>
+   <div class="coord-line">
+     <input id="lat" inputmode="decimal" placeholder="Ex.: 1,353799360000">
+     <button type="button" class="sign-btn" id="latNeg">−</button>
+   </div>
+ </div>
+ <div>
+   <label for="lon">LONGITUDE DE ENVIO</label>
+   <div class="coord-line">
+     <input id="lon" inputmode="decimal" placeholder="Ex.: 48,244599970000">
+     <button type="button" class="sign-btn" id="lonNeg">−</button>
+   </div>
+ </div>
 </div>
 
 <div class="actions">
@@ -202,6 +222,26 @@ function esc(s){
  return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function toggleNegative(inputId, buttonId){
+  const input = $(inputId);
+  const button = $(buttonId);
+  let value = String(input.value || '').trim();
+
+  // O usuário pode digitar a parte numérica usando vírgula no teclado brasileiro.
+  // O botão alterna apenas o sinal, evitando a necessidade de encontrar "-" no teclado.
+  if(value.startsWith('-')){
+    value = value.slice(1);
+    button.classList.remove('active');
+  }else if(value){
+    value = '-' + value;
+    button.classList.add('active');
+  }else{
+    button.classList.toggle('active');
+  }
+  input.value = value;
+  input.focus();
+}
+
 function abrirLinkExterno(url){
   if(!url) return false;
 
@@ -288,11 +328,14 @@ $('copiar').addEventListener('click',async()=>{
 });
 $('limpar').addEventListener('click',()=>{
  $('lat').value='';$('lon').value='';dados={};$('maps').style.display='none';
+ $('latNeg').classList.remove('active'); $('lonNeg').classList.remove('active');
  $('resultado').innerHTML='<strong>LATITUDE:</strong> —<br><strong>LONGITUDE:</strong> —<br><strong>GOOGLE MAPS:</strong> —';
  $('endereco').innerHTML='<h2>🏠 ENDEREÇO</h2><strong>RUA:</strong> —<br><strong>BAIRRO:</strong> —<br><strong>CIDADE:</strong> —<br><strong>ESTADO:</strong> —<br><strong>CEP:</strong> —';
  $('status').textContent='';$('lat').focus();
 });
 ['lat','lon'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')localizar()}));
+$('latNeg').addEventListener('click',()=>toggleNegative('lat','latNeg'));
+$('lonNeg').addEventListener('click',()=>toggleNegative('lon','lonNeg'));
 
 async function buscarPorEndereco(){
  const rua=$('ruaBusca').value.trim();
