@@ -202,6 +202,29 @@ function esc(s){
  return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function abrirLinkExterno(url){
+  if(!url) return false;
+
+  // Dentro do Telegram Mini App, use a API oficial do Telegram
+  // em vez de depender de target="_blank" no WebView.
+  if(tg && typeof tg.openLink === 'function'){
+    try{
+      tg.openLink(url);
+      return true;
+    }catch(e){}
+  }
+
+  // Fallback para navegador normal.
+  try{
+    const w = window.open(url, '_blank', 'noopener,noreferrer');
+    if(w) return true;
+  }catch(e){}
+
+  // Último fallback.
+  window.location.href = url;
+  return true;
+}
+
 async function localizar(){
  const lat=parseCoord($('lat').value), lon=parseCoord($('lon').value), st=$('status');
  if(!Number.isFinite(lat)||!Number.isFinite(lon)){
@@ -247,6 +270,16 @@ async function localizar(){
 }
 
 $('localizar').addEventListener('click',localizar);
+
+$('maps').addEventListener('click',e=>{
+  e.preventDefault();
+  if(!dados.link){
+    $('status').className='aviso erro';
+    $('status').textContent='Localize uma coordenada primeiro.';
+    return;
+  }
+  abrirLinkExterno(dados.link);
+});
 $('copiar').addEventListener('click',async()=>{
  if(!dados.link){$('status').className='aviso erro';$('status').textContent='Localize uma coordenada primeiro.';return}
  const t=`RUA: ${dados.rua||'-'}\nBAIRRO: ${dados.bairro||'-'}\nCIDADE: ${dados.cidade||'-'}\nESTADO: ${dados.estado||'-'}\nCEP: ${dados.cep||'-'}\nCOORDENADAS: ${dados.lat}, ${dados.lon}\n${dados.link}`;
@@ -316,6 +349,13 @@ async function buscarPorEndereco(){
 }
 
 $('buscarEndereco').addEventListener('click',buscarPorEndereco);
+
+$('mapsEndereco').addEventListener('click',e=>{
+  e.preventDefault();
+  const url = $('mapsEndereco').href;
+  if(!url) return;
+  abrirLinkExterno(url);
+});
 
 // Optional bridge for a future bot/backend.
 // This does not expose or trust initData on the client; server-side validation is required.
